@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 author 'Noted'
-description 'Allows players to open a camera to a set location'
+description 'Allows players to draw and transfuse blood'
 version '1.0'
 
 shared_script {

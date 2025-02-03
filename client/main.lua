@@ -220,3 +220,37 @@ RegisterNetEvent('ntest:client:startDrawingBlood', function()
         end)
     end
 end)
+
+
+-- blood testing portion:
+
+local testcoords = vector3(0,0,0)
+local teststashname = "bloodteststash"
+
+RegisterNetEvent('ntest:client:openBloodTestStash', function()
+    exports.interact:AddInteraction({
+        coords = testcoords,
+        name = teststashname,
+        id = teststashname,
+        distance = 2.0,
+        interactDst = 1.0,
+        groups = {"ambulance"},
+        options = {
+            {
+                label = "Add Blood Sample",
+                action = function(entity, coords, args)
+                    TriggerEvent("ntest:client:" .. teststashname)
+                end,
+                canInteract = stash.canInteract or function() return true end,
+            }
+        }
+    })
+end)
+
+RegisterNetEvent('ntest:client:' .. teststashname, function ()
+    TriggerEvent("inventory:client:SetCurrentStash", teststashname)
+    TriggerServerEvent("inventory:server:OpenInventory", "stash", teststashname, {
+        maxweight = 1,
+        slots = 1,
+    })
+end)

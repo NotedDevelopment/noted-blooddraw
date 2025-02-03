@@ -3,6 +3,7 @@ local bloodDrawnPeople = {}
 
 local transfusionItem = 'syringe'
 local bloodDrawItem = 'emptybloodbag'
+local itemName = "bloodsample"
 
 local recieveableBlood = {
    ["A-"]  = {
@@ -93,6 +94,15 @@ local revertName = {
    ["opbloodbag"]  = "O+",
    ["onbloodbag"]  = "O-",
 }
+
+local function AddSuffix(day)
+    local suffix = "th"
+    if day % 10 == 1 and day ~= 11 then suffix = "st"
+    elseif day % 10 == 2 and day ~= 12 then suffix = "nd"
+    elseif day % 10 == 3 and day ~= 13 then suffix = "rd"
+    end
+    return tostring(day) .. suffix
+end
 
 for key, value in pairs(revertName) do
    QBCore.Functions.CreateUseableItem(key, function(source, item)
@@ -203,4 +213,35 @@ QBCore.Functions.CreateCallback('ntest:server:MakePlayerList', function(source, 
 		onlineList[#onlineList+1] = { value = tonumber(v), text = "["..v.."] - "..P.PlayerData.charinfo.firstname .. " " .. P.PlayerData.charinfo.lastname}
 	end
 	cb(onlineList)
+end)
+
+-- blood test stuff (pending)
+
+RegisterNetEvent('ntest:server:startBloodTest', function()
+   
+end)
+
+RegisterNetEvent('ntest:server:giveMedCard', function(details)
+   local src = source
+   local Player = QBCore.Functions.GetPlayer(src)
+   
+   local info = {}
+   info.name = details.name
+   info.cid = details.cid
+   info.bloodtype = details.bloodtype
+   info.allergies = details.allergies
+   info.medications = details.medications
+   info.emergencyContacts = details.emergencyContacts
+   info.details = details.details
+
+   
+   if dateInput == true then
+      local month = os.date("%B")
+      local day = os.date("%d")
+      local year = os.date("%Y")
+      day = AddSuffix(tonumber(day))
+      info.date = month .. " " .. day .. ", " .. year
+   end
+   Player.Functions.AddItem("medicalcard", 1, nil, info)
+   TriggerClientEvent('inventory:client:ItemBox', src,  QBCore.Shared.Items["medicalcard"], 'add', quantity)
 end)
