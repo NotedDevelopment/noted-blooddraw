@@ -238,10 +238,11 @@ RegisterNetEvent('noted-blooddraw:client:getbloodsample', function()
         local output
         if input and input[1] ~= '' then
             output = input[1]
-        else
+            TriggerServerEvent('noted-blooddraw:server:getBloodSample', GetPlayerServerId(PlayerId()), output)
+        elseif input and input[1] == '' then
             output = "Blood Sample #" .. string.format("%03d", math.random(1, 999))
+            TriggerServerEvent('noted-blooddraw:server:getBloodSample', GetPlayerServerId(PlayerId()), output)
         end
-        TriggerServerEvent('noted-blooddraw:server:getBloodSample', GetPlayerServerId(PlayerId()), output)
     end, function()
 
     end)
@@ -292,15 +293,14 @@ RegisterNetEvent('noted-blooddraw:client:checkbloodsample', function(inventory)
         if v.name == 'bloodsample' and v.info and v.info.blood then
 
             opt[#opt+1] = {
-                header = 'Blood Sample In Slot: ' .. k,
-                text = 'Blood Sample In Slot: ' .. k,
-                title = 'Blood Sample In Slot: ' .. k,
-                params = {
-                    event = 'noted-blooddraw:client:startbloodsampletest',
-                    args = {
-                        slot = k,
-                    },
-                },
+                title = v.info.text,
+                description = 'Blood Sample In Slot: ' .. k,
+                -- params = {
+                --     event = 'noted-blooddraw:client:startbloodsampletest',
+                --     args = {
+                --         slot = k,
+                --     },
+                -- },
                 event = 'noted-blooddraw:client:startbloodsampletest',
                 args = {
                     slot = k,

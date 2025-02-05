@@ -5,6 +5,9 @@ local transfusionItem = 'syringe'
 local bloodDrawItem = 'emptybloodbag'
 local itemName = "bloodsample"
 
+local bloodmin = 1
+local bloodmax = 3
+
 local recieveableBlood = {
     ["A-"] = {
         translation = "anbloodbag",
@@ -172,12 +175,12 @@ RegisterNetEvent('noted-blooddraw:server:succeedBloodDraw', function(otherPlayer
     if success then
         local op = QBCore.Functions.GetPlayer(otherPlayer)
         bloodDrawnPeople[op["PlayerData"]["citizenid"]] = true
-        player.Functions.AddItem(recieveableBlood[op.PlayerData["metadata"]["bloodtype"]].translation)
+        local bloodquantity = math.random(bloodmin, bloodmax)
+        player.Functions.AddItem(recieveableBlood[op.PlayerData["metadata"]["bloodtype"]].translation, bloodquantity)
         if bloodDrawItem then
             TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items[bloodDrawItem], 'remove', 1)
         end
-        TriggerClientEvent('inventory:client:ItemBox', src,
-            QBCore.Shared.Items[recieveableBlood[op.PlayerData["metadata"]["bloodtype"]].translation], 'add', 1)
+        TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items[recieveableBlood[op.PlayerData["metadata"]["bloodtype"]].translation], 'add', bloodquantity)
     end
 end)
 
