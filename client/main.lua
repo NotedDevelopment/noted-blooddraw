@@ -46,11 +46,11 @@ function GetClosestPlayers(radius)
     return closestPlayers
 end
 
-RegisterNetEvent('ntest:client:print', function(stuff)
+RegisterNetEvent('noted-blooddraw:client:print', function(stuff)
     print(stuff)
 end)
 
-RegisterNetEvent('ntest:client:bloodTransfusion', function(bloodbagtype, bloodbagname)
+RegisterNetEvent('noted-blooddraw:client:bloodTransfusion', function(bloodbagtype, bloodbagname)
     local ped = PlayerPedId()
     QBCore.Functions.Progressbar("transfusingbloodstart", "Preparing Transfusion", 1000, false, true, {
         disableMovement = true,
@@ -58,7 +58,7 @@ RegisterNetEvent('ntest:client:bloodTransfusion', function(bloodbagtype, bloodba
         disableMouse = false,
         disableCombat = true,
     }, {}, {}, {}, function() -- Done
-        local p = promise.new() QBCore.Functions.TriggerCallback('ntest:server:MakePlayerList', function(cb) p:resolve(cb) end)
+        local p = promise.new() QBCore.Functions.TriggerCallback('noted-blooddraw:server:MakePlayerList', function(cb) p:resolve(cb) end)
 		local onlineList = Citizen.Await(p)
 		local nearbyList = {}
         local newinputs = {}
@@ -93,7 +93,7 @@ RegisterNetEvent('ntest:client:bloodTransfusion', function(bloodbagtype, bloodba
                 disableMouse = false,
                 disableCombat = true,
             }, {}, {}, {}, function() -- Done
-                QBCore.Functions.TriggerCallback('ntest:server:transfusionact', function(result)
+                QBCore.Functions.TriggerCallback('noted-blooddraw:server:transfusionact', function(result)
                     if result then
                         QBCore.Functions.Notify("The blood you administered seems to have been the right type, the blood transfusion was administered properly.", 'success', 15000)
                     else
@@ -112,7 +112,7 @@ end)
 
 
 
-RegisterNetEvent('ntest:client:startDrawingBlood', function()
+RegisterNetEvent('noted-blooddraw:client:startDrawingBlood', function()
     local ped = PlayerPedId()
     local playerCoords = GetEntityCoords(ped)
     local otherPlayer = lib.getClosestPlayer(playerCoords, 3.0)
@@ -180,7 +180,7 @@ RegisterNetEvent('ntest:client:startDrawingBlood', function()
                 end
                 -- local success = true
                 if success then
-                    QBCore.Functions.TriggerCallback('ntest:server:prebloodcheck', function(result)
+                    QBCore.Functions.TriggerCallback('noted-blooddraw:server:prebloodcheck', function(result)
                         if result then
                             TriggerEvent('animations:client:EmoteCommandStart', {"c"})
                             QBCore.Functions.Notify("You notice the individual looks weak, they've certainly gotten their blood drawn before today and can't until some time has passed.", "error", 15000)
@@ -201,7 +201,7 @@ RegisterNetEvent('ntest:client:startDrawingBlood', function()
                             }, {}, {}, {}, function() -- Done
                                 TriggerEvent('animations:client:EmoteCommandStart', {"c"})
                                 print("reached")
-                                TriggerServerEvent('ntest:server:succeedBloodDraw', otherPlayerS)
+                                TriggerServerEvent('noted-blooddraw:server:succeedBloodDraw', otherPlayerS)
                             end, function() -- cancel
                                 TriggerEvent('animations:client:EmoteCommandStart', {"c"})
                             end)
@@ -224,33 +224,114 @@ end)
 
 -- blood testing portion:
 
-local testcoords = vector3(0,0,0)
-local teststashname = "bloodteststash"
 
-RegisterNetEvent('ntest:client:openBloodTestStash', function()
-    exports.interact:AddInteraction({
-        coords = testcoords,
-        name = teststashname,
-        id = teststashname,
-        distance = 2.0,
-        interactDst = 1.0,
-        groups = {"ambulance"},
-        options = {
-            {
-                label = "Add Blood Sample",
-                action = function(entity, coords, args)
-                    TriggerEvent("ntest:client:" .. teststashname)
-                end,
-                canInteract = stash.canInteract or function() return true end,
+RegisterNetEvent('noted-blooddraw:client:getbloodsample', function()
+    QBCore.Functions.Progressbar("removebloodsample", "Checking Client Information", 1000, false, true, {
+        disableMovement = true,
+        disableCarMovement = true,
+        disableMouse = false,
+        disableCombat = true,
+    }, {}, {}, {}, function() -- Done
+        local input = lib.inputDialog('Blood Sample Note', {
+            {type = "textarea", label = "Insert Description Of Sample Here: ", autosize = true}
+        })
+        local output
+        if input and input[1] ~= '' then
+            output = input[1]
+        else
+            output = "Blood Sample #" .. string.format("%03d", math.random(1, 999))
+        end
+        TriggerServerEvent('noted-blooddraw:server:getBloodSample', GetPlayerServerId(PlayerId()), output)
+    end, function()
+
+    end)
+end)
+
+RegisterNetEvent('noted-blooddraw:client:startbloodsampletest', function(data)
+    print("entered")
+    QBCore.Functions.Progressbar("removebloodsample", "Checking Client Information", 2500, false, true, {
+        disableMovement = true,
+        disableCarMovement = true,
+        disableMouse = false,
+        disableCombat = true,
+    }, {}, {}, {}, function() -- Done
+        
+        local success = exports["bd-minigames"]:Lockpick("Lockpick", 3, 25)
+        if not success then
+            QBCore.Functions.Notify("This blood sample is proving to be difficult to analyze...", "error")
+            QBCore.Functions.Progressbar("removebloodsample", "Checking Client Information", 2500, false, true, {
+                disableMovement = true,
+                disableCarMovement = true,
+                disableMouse = false,
+                disableCombat = true,
+            }, {}, {}, {}, function() -- Done
+                success = exports["bd-minigames"]:Lockpick("Lockpick", 3, 25)
+                if not success then
+                    QBCore.Functions.Notify("You failed to analyze the blood sample, it's been corrupted", "error")
+                    TriggerServerEvent('noted-blooddraw:server:failbloodsample', data)
+                else
+                    TriggerServerEvent('noted-blooddraw:server:finishBloodTesting', data)
+                end
+            end, function()
+                TriggerServerEvent('noted-blooddraw:server:failbloodsample', data)
+            end)
+        else
+            TriggerServerEvent('noted-blooddraw:server:finishBloodTesting', data)
+        end
+    end, function()
+
+    end)
+end)
+
+RegisterNetEvent('noted-blooddraw:client:checkbloodsample', function(inventory)
+    local foundBlood = false
+    local opt = {}
+
+    for k, v in pairs(inventory) do           
+        -- print("v == " .. dump(v))
+        if v.name == 'bloodsample' and v.info and v.info.blood then
+
+            opt[#opt+1] = {
+                header = 'Blood Sample In Slot: ' .. k,
+                text = 'Blood Sample In Slot: ' .. k,
+                title = 'Blood Sample In Slot: ' .. k,
+                params = {
+                    event = 'noted-blooddraw:client:startbloodsampletest',
+                    args = {
+                        slot = k,
+                    },
+                },
+                event = 'noted-blooddraw:client:startbloodsampletest',
+                args = {
+                    slot = k,
+                },
             }
-        }
-    })
+            if not foundBlood then foundBlood = true end
+        end
+    end
+
+    if not foundBlood then
+        QBCore.Functions.Notify('You have no blood samples to test', 'error')
+        return
+    end
+
+    opt[#opt+1] = {
+        header = "Close (ESC)",
+        title = "Close (ESC)",
+        params = {
+            event = 'qb-menu:client:closeMenu',
+        },
+        event = 'qb-menu:client:closeMenu',
+    }
+
+    local menu = {
+        id = 'bloodmenu',
+        title = '**Test Blood Sample:**',
+        canClose = true,
+        options = opt,
+    }
+    
+    lib.registerContext(menu)
+    lib.showContext('bloodmenu')
 end)
 
-RegisterNetEvent('ntest:client:' .. teststashname, function ()
-    TriggerEvent("inventory:client:SetCurrentStash", teststashname)
-    TriggerServerEvent("inventory:server:OpenInventory", "stash", teststashname, {
-        maxweight = 1,
-        slots = 1,
-    })
-end)
