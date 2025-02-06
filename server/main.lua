@@ -1,4 +1,7 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore = GetResourceState('qb-core') == 'started' and exports['qb-core']:GetCoreObject()
+local ESX = GetResourceState('es_extended') == 'started' and exports.es_extended:getSharedObject()
+local ox_inventory = GetResourceState('ox_inventory') == 'started' and exports.ox_inventory
+
 local bloodDrawnPeople = {}
 
 local transfusionItem = 'syringe'
@@ -249,25 +252,24 @@ RegisterNetEvent('noted-blooddraw:server:giveMedCard', function(details)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
 
-    local proc = {}
-    proc.name = details.name or "NaN"
-    proc.alias = details.alias or "None"
-    proc.bloodtype = details.bloodtype or "NaN"
-    proc.allergies = details.allergies or "Nothing Documented"
-    proc.medications = details.medications or "None"
-    proc.emergencyContacts = details.emergencyContacts or "None"
-    proc.details = details.details or ""
+    local info = {}
+    info.name = details[1] or "NaN"
+    info.alias = details[2] or "None"
+    info.age = details[3] or "NaN"
+    info.bloodtype = details[4] or "NaN"
+    info.allergies = details[5] or "Nothing Documented"
+    info.medications = details[6] or "None"
+    info.emergencyContacts = details[7] or "None"
+    info.details = details[8] or "None"
 
     if dateInput == true then
         local month = os.date("%B")
         local day = os.date("%d")
         local year = os.date("%Y")
         day = AddSuffix(tonumber(day))
-        proc.date = month .. " " .. day .. ", " .. year
+        info.date = month .. " " .. day .. ", " .. year
     end
-    
-    local info = {}
-    info.text = "Name: " .. proc.name .. "<br>Alias/Nickname: " .. proc.alias .. "<br>Blood Type: " .. proc.bloodtype .. "<br>Allergic To: " .. proc.allergies .. "<br>Medications: " .. proc.medications .. "<br>Emergency Contact: " .. proc.emergencyContacts .. "<br>Extra Details: " .. proc.details
+    -- info.text = "Name: " .. proc.name .. "<br>Alias/Nickname: " .. proc.alias .. "<br>Blood Type: " .. proc.bloodtype .. "<br>Allergic To: " .. proc.allergies .. "<br>Medications: " .. proc.medications .. "<br>Emergency Contact: " .. proc.emergencyContacts .. "<br>Extra Details: " .. proc.details
     Player.Functions.AddItem("medicalcard", 1, nil, info)
     TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["medicalcard"], 'add', 1)
 end)
@@ -288,6 +290,11 @@ RegisterNetEvent('noted-blooddraw:server:getBloodSample', function(otherPlayer, 
 end)
 
 RegisterCommand("blood", function(source) 
+    local Player = QBCore.Functions.GetPlayer(source)
+    TriggerClientEvent('noted-blooddraw:client:checkbloodsample', source, Player.PlayerData.items)
+end)
+
+RegisterNetEvent('noted-blooddraw:server:getBloodSamples',function()
     local Player = QBCore.Functions.GetPlayer(source)
     TriggerClientEvent('noted-blooddraw:client:checkbloodsample', source, Player.PlayerData.items)
 end)

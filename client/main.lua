@@ -1,6 +1,25 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore = GetResourceState('qb-core') == 'started' and exports['qb-core']:GetCoreObject()
+local ESX = GetResourceState('es_extended') == 'started' and exports.es_extended:getSharedObject()
+local ox_inventory = GetResourceState('ox_inventory') == 'started' and exports.ox_inventory
 
 local bloodGiveRadius = 5
+local bloodCheckpointLabel = "Analyze Blood Samples"
+local bloodCheckPoints = {
+    {
+        startLocation = vector3(315.32, -568.53, 43.16),
+        distance = 3,
+        id = "sandy",
+    },
+    {
+        startLocation = vector3(323.47, -571.47, 43.13),
+        distance = 3,
+        id = "sandy",
+    },
+}
+local approvedJobs = {
+    ["ambulance"] = 0
+}
+
 local thinkAnims = {
     "think", "think2", "think3", "think4", "think6"
 }
@@ -109,8 +128,6 @@ RegisterNetEvent('noted-blooddraw:client:bloodTransfusion', function(bloodbagtyp
     end)
 
 end)
-
-
 
 RegisterNetEvent('noted-blooddraw:client:startDrawingBlood', function()
     local ped = PlayerPedId()
@@ -249,14 +266,12 @@ RegisterNetEvent('noted-blooddraw:client:getbloodsample', function()
 end)
 
 RegisterNetEvent('noted-blooddraw:client:startbloodsampletest', function(data)
-    print("entered")
     QBCore.Functions.Progressbar("removebloodsample", "Checking Client Information", 2500, false, true, {
         disableMovement = true,
         disableCarMovement = true,
         disableMouse = false,
         disableCombat = true,
     }, {}, {}, {}, function() -- Done
-        
         local success = exports["bd-minigames"]:Lockpick("Lockpick", 3, 25)
         if not success then
             QBCore.Functions.Notify("This blood sample is proving to be difficult to analyze...", "error")
@@ -271,12 +286,18 @@ RegisterNetEvent('noted-blooddraw:client:startbloodsampletest', function(data)
                     QBCore.Functions.Notify("You failed to analyze the blood sample, it's been corrupted", "error")
                     TriggerServerEvent('noted-blooddraw:server:failbloodsample', data)
                 else
+                    print("called prematurely")
+                    TriggerEvent('animations:client:EmoteCommandStart', {"c"})
                     TriggerServerEvent('noted-blooddraw:server:finishBloodTesting', data)
                 end
             end, function()
+                print("called prematurely")
+                TriggerEvent('animations:client:EmoteCommandStart', {"c"})
                 TriggerServerEvent('noted-blooddraw:server:failbloodsample', data)
             end)
         else
+            print("called prematurely")
+            TriggerEvent('animations:client:EmoteCommandStart', {"c"})
             TriggerServerEvent('noted-blooddraw:server:finishBloodTesting', data)
         end
     end, function()
@@ -314,14 +335,11 @@ RegisterNetEvent('noted-blooddraw:client:checkbloodsample', function(inventory)
         QBCore.Functions.Notify('You have no blood samples to test', 'error')
         return
     end
-
+    
+    TriggerEvent('animations:client:EmoteCommandStart', {"cokecut"})
     opt[#opt+1] = {
-        header = "Close (ESC)",
         title = "Close (ESC)",
-        params = {
-            event = 'qb-menu:client:closeMenu',
-        },
-        event = 'qb-menu:client:closeMenu',
+        onSelect = function() TriggerEvent('animations:client:EmoteCommandStart', {"c"}) end,
     }
 
     local menu = {
@@ -329,9 +347,80 @@ RegisterNetEvent('noted-blooddraw:client:checkbloodsample', function(inventory)
         title = '**Test Blood Sample:**',
         canClose = true,
         options = opt,
+        onExit = function() TriggerEvent('animations:client:EmoteCommandStart', {"c"}) end,
     }
     
     lib.registerContext(menu)
     lib.showContext('bloodmenu')
 end)
 
+-- {
+--     startLocation = vector3(315.32, -568.53, 43.16),
+--     distance = 3,
+--     DropOffLocations = "sandy",
+-- },
+
+CreateThread(function()
+    for i, doz in ipairs(bloodCheckPoints) do
+        print("called " .. i)
+        exports.interact:AddInteraction({
+            coords = doz.startLocation,
+            distance = doz.distance,
+            interactDst = doz.distance,
+            id = "bloodcheck" .. doz.id,
+            options = {
+                {
+                    label = bloodCheckpointLabel,
+                    canInteract = function()
+                        local Player = QBCore.Functions.GetPlayerData()
+                        -- print("job name == " .. Player.job.name)
+                        -- print("job grade == " .. Player.job.grade.level)
+                        return (approvedJobs[Player.job.name] and approvedJobs[Player.job.name] <= Player.job.grade.level)
+                    end,
+                    action = function(entity, coords, args)
+                        TaskTurnPedToFaceCoord(PlayerPedId(), doz.startLocation.x, doz.startLocation.y, doz.startLocation.z, 1200)
+                        QBCore.Functions.Progressbar("stoppackingnormal", "Starting Delivery Runs", 1200, false, true, {
+                        disableMovement = true,
+                        disableCarMovement = true,
+                        disableMouse = false,
+                        disableCombat = true,
+                        }, {
+                        }, {}, {}, function()
+                            TriggerServerEvent('noted-blooddraw:server:getBloodSamples')
+                        end, function()
+                        -- Cancel
+                        end)
+                    end,
+                    args = {
+                        index = i,
+                    },
+                },
+            } 
+        })
+    end
+end)
+
+RegisterNetEvent('noted-blooddraw:client:printMedicalCard', function()
+    QBCore.Functions.Progressbar("printmedicalcard", "Checking Client Information", 1000, false, true, {
+        disableMovement = true,
+        disableCarMovement = true,
+        disableMouse = false,
+        disableCombat = true,
+    }, {}, {}, {}, function() -- Done
+        local input = lib.inputDialog('Blood Sample Note', {
+            {type = "textarea", label = "Name: ", autosize = true},
+            {type = "textarea", label = "Alias: ", autosize = true},
+            {type = "textarea", label = "Age: ", autosize = true},
+            {type = "textarea", label = "Blood Type: ", autosize = true},
+            {type = "textarea", label = "Allergies: ", autosize = true},
+            {type = "textarea", label = "Medications: ", autosize = true},
+            {type = "textarea", label = "Emergency Contacts: ", autosize = true},
+            {type = "textarea", label = "Details: ", autosize = true},
+        })
+        if input then
+            TriggerServerEvent('noted-blooddraw:server:giveMedCard', input)
+        end
+    end, function()
+
+    end)
+end)
