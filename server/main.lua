@@ -248,31 +248,6 @@ QBCore.Functions.CreateCallback('noted-blooddraw:server:startBloodTest', functio
     cb(onlineList)
 end)
 
-RegisterNetEvent('noted-blooddraw:server:giveMedCard', function(details)
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src)
-
-    local info = {}
-    info.name = details[1] or "NaN"
-    info.alias = details[2] or "None"
-    info.age = details[3] or "NaN"
-    info.bloodtype = details[4] or "NaN"
-    info.allergies = details[5] or "Nothing Documented"
-    info.medications = details[6] or "None"
-    info.emergencyContacts = details[7] or "None"
-    info.details = details[8] or "None"
-
-    if dateInput == true then
-        local month = os.date("%B")
-        local day = os.date("%d")
-        local year = os.date("%Y")
-        day = AddSuffix(tonumber(day))
-        info.date = month .. " " .. day .. ", " .. year
-    end
-    -- info.text = "Name: " .. proc.name .. "<br>Alias/Nickname: " .. proc.alias .. "<br>Blood Type: " .. proc.bloodtype .. "<br>Allergic To: " .. proc.allergies .. "<br>Medications: " .. proc.medications .. "<br>Emergency Contact: " .. proc.emergencyContacts .. "<br>Extra Details: " .. proc.details
-    Player.Functions.AddItem("medicalcard", 1, nil, info)
-    TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["medicalcard"], 'add', 1)
-end)
 
 RegisterNetEvent('noted-blooddraw:server:getBloodSample', function(otherPlayer, data)
     local src = source
@@ -321,4 +296,63 @@ RegisterNetEvent('noted-blooddraw:server:finishBloodTesting', function(data)
             TriggerClientEvent('QBCore:Notify', source, "You recovered the blood type from this sample, it is: " .. item.info.blood, 'success', 10000)
         end
     end
+end)
+
+RegisterNetEvent('noted-blooddraw:server:giveMedCard', function(details, slot)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    local PlayerItems = Player.PlayerData.items
+    local item = table.clone(PlayerItems[slot])
+
+    local info = {}
+    info.name = details[1] or "NaN"
+    info.alias = details[2] or "None"
+    info.age = details[3] or "NaN"
+    info.bloodtype = details[4] or "NaN"
+    info.allergies = details[5] or "Nothing Documented"
+    info.medications = details[6] or "None"
+    info.emergencyContacts = details[7] or "None"
+    info.details = details[8] or "None"
+
+    if dateInput == true then
+        local month = os.date("%B")
+        local day = os.date("%d")
+        local year = os.date("%Y")
+        day = AddSuffix(tonumber(day))
+        info.date = month .. " " .. day .. ", " .. year
+    end
+
+    if PlayerItems[slot] then
+        if Player.Functions.RemoveItem(item.name, 1, slot) then
+            Player.Functions.AddItem("medicalcard", 1, slot, info)
+            TriggerClientEvent('QBCore:Notify', src, "You finished editing the medical card.", 'success', 10000)
+        end
+    end
+    
+    TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["medicalcard"], 'add', 1)
+end)
+
+
+QBCore.Functions.CreateUseableItem('medicalcard', function(source, item)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    print("print from server: " .. dump(item))
+    if next(item.info) then
+        print("entered here")
+        local info = {}
+        info.name = item.info.name or "NaN"
+        info.alias = item.info.alias or "None"
+        info.age = item.info.age or "NaN"
+        info.bloodtype = item.info.bloodtype or "NaN"
+        info.allergies = item.info.allergies or "Nothing Documented"
+        info.medications = item.info.medications or "None"
+        info.emergencyContacts = item.info.emergencyContacts or "None"
+        info.details = item.info.details or "None"
+        TriggerClientEvent('noted-blooddraw:client:printMedicalCard', src, info, item.slot)
+    else
+        print("entered there")
+        TriggerClientEvent('noted-blooddraw:client:printMedicalCard', src, nil, item.slot)
+    end
+
+    -- TriggerClientEvent('QBCore:Notify', src, "You need something to administer the blood in this bag", 'error')
 end)

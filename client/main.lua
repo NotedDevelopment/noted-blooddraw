@@ -400,25 +400,39 @@ CreateThread(function()
     end
 end)
 
-RegisterNetEvent('noted-blooddraw:client:printMedicalCard', function()
+RegisterNetEvent('noted-blooddraw:client:printMedicalCard', function(info, slot)
     QBCore.Functions.Progressbar("printmedicalcard", "Checking Client Information", 1000, false, true, {
         disableMovement = true,
         disableCarMovement = true,
         disableMouse = false,
         disableCombat = true,
     }, {}, {}, {}, function() -- Done
-        local input = lib.inputDialog('Blood Sample Note', {
-            {type = "textarea", label = "Name: ", autosize = true},
-            {type = "textarea", label = "Alias: ", autosize = true},
-            {type = "textarea", label = "Age: ", autosize = true},
-            {type = "textarea", label = "Blood Type: ", autosize = true},
-            {type = "textarea", label = "Allergies: ", autosize = true},
-            {type = "textarea", label = "Medications: ", autosize = true},
-            {type = "textarea", label = "Emergency Contacts: ", autosize = true},
-            {type = "textarea", label = "Details: ", autosize = true},
-        })
+        local input 
+        if info then
+            input = lib.inputDialog('Blood Sample Note', {
+                {type = "textarea", label = "Name: ", autosize = true, default = info.name},
+                {type = "textarea", label = "Alias: ", autosize = true, default = info.alias},
+                {type = "textarea", label = "Age: ", autosize = true, default = info.age},
+                {type = "textarea", label = "Blood Type: ", autosize = true, default = info.bloodtype},
+                {type = "textarea", label = "Allergies: ", autosize = true, default = info.allergies},
+                {type = "textarea", label = "Medications: ", autosize = true, default = info.medications},
+                {type = "textarea", label = "Emergency Contacts: ", autosize = true, default = info.emergencyContacts},
+                {type = "textarea", label = "Details: ", autosize = true, default = info.details},
+            })
+        else
+            input = lib.inputDialog('Blood Sample Note', {
+                {type = "textarea", label = "Name: ", autosize = true},
+                {type = "textarea", label = "Alias: ", autosize = true},
+                {type = "textarea", label = "Age: ", autosize = true},
+                {type = "textarea", label = "Blood Type: ", autosize = true},
+                {type = "textarea", label = "Allergies: ", autosize = true},
+                {type = "textarea", label = "Medications: ", autosize = true},
+                {type = "textarea", label = "Emergency Contacts: ", autosize = true},
+                {type = "textarea", label = "Details: ", autosize = true},
+            })
+        end
         if input then
-            TriggerServerEvent('noted-blooddraw:server:giveMedCard', input)
+            TriggerServerEvent('noted-blooddraw:server:giveMedCard', input, slot)
         end
     end, function()
 
